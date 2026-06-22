@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UserPlus, User as UserIcon, Phone } from 'lucide-react';
+import { API_URL } from '../config';
+
 
 function Customers() {
   const { t } = useTranslation();
@@ -13,13 +15,13 @@ function Customers() {
 
   useEffect(() => {
     fetchCustomers();
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/distributors`)
+    fetch(`${API_URL}/api/distributors`)
       .then(res => res.json())
       .then(data => setDistributors(data));
   }, []);
 
   const fetchCustomers = () => {
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/customers`)
+    fetch(`${API_URL}/api/customers`)
       .then(res => res.json())
       .then(data => setCustomers(data));
   };
@@ -30,7 +32,7 @@ function Customers() {
     if (dataToSend.type === 'pickup') delete dataToSend.assignedDistributorId;
     if (!dataToSend.assignedDistributorId) delete dataToSend.assignedDistributorId;
 
-    await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/customers`, {
+    await fetch(`${API_URL}/api/customers`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dataToSend)

@@ -4,6 +4,8 @@ import { Download, Calculator, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
+import { API_URL } from '../config';
+
 
 function Reports() {
   const { t } = useTranslation();
@@ -18,19 +20,19 @@ function Reports() {
   }, [month, year]);
 
   const fetchBilling = () => {
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/reports/billing?month=${month}&year=${year}`)
+    fetch(`${API_URL}/api/reports/billing?month=${month}&year=${year}`)
       .then(res => res.json())
       .then(data => setBillingData(data));
   };
 
   const fetchPrice = () => {
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/settings/pricePerLitre`)
+    fetch(`${API_URL}/api/settings/pricePerLitre`)
       .then(res => res.json())
       .then(data => setPricePerLitre(data?.value || 70));
   };
 
   const savePrice = async () => {
-    await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/settings/pricePerLitre`, {
+    await fetch(`${API_URL}/api/settings/pricePerLitre`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ value: pricePerLitre })

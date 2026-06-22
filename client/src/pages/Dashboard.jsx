@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Users, Truck, CheckCircle, Droplets } from 'lucide-react';
+import { API_URL } from '../config';
 
 function Dashboard() {
   const { t } = useTranslation();
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/dashboard`)
+    fetch(`${API_URL}/api/dashboard`)
       .then(res => res.json())
       .then(data => setStats(data))
       .catch(err => console.error(err));

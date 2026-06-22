@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UserPlus, Truck, MapPin, Phone } from 'lucide-react';
+import { API_URL } from '../config';
+
 
 function Distributors() {
   const { t } = useTranslation();
@@ -13,14 +15,14 @@ function Distributors() {
   }, []);
 
   const fetchDistributors = () => {
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/distributors`)
+    fetch(`${API_URL}/api/distributors`)
       .then(res => res.json())
       .then(data => setDistributors(data));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/distributors`, {
+    await fetch(`${API_URL}/api/distributors`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)

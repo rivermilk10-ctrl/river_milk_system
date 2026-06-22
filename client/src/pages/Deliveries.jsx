@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../App';
 import { Check, MapPin, User as UserIcon, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { format, addDays, subDays, startOfDay, isSameDay } from 'date-fns';
+import { API_URL } from '../config';
+
 
 function Deliveries() {
   const { t } = useTranslation();
@@ -14,8 +16,8 @@ function Deliveries() {
 
   const fetchDeliveries = (date) => {
     const url = user.role === 'distributor' 
-      ? `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/deliveries/today?distributorId=${user.id}&date=${date.toISOString()}`
-      : `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/deliveries/today?date=${date.toISOString()}`;
+      ? `${API_URL}/api/deliveries/today?distributorId=${user.id}&date=${date.toISOString()}`
+      : `${API_URL}/api/deliveries/today?date=${date.toISOString()}`;
       
     fetch(url)
       .then(res => res.json())
@@ -23,7 +25,7 @@ function Deliveries() {
   };
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/customers`)
+    fetch(`${API_URL}/api/customers`)
       .then(res => res.json())
       .then(data => {
         if (user.role === 'distributor') {
@@ -58,7 +60,7 @@ function Deliveries() {
     setDeliveries(prev => [...prev, newDelivery]);
 
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/deliveries/mark`, {
+      await fetch(`${API_URL}/api/deliveries/mark`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newDelivery)
