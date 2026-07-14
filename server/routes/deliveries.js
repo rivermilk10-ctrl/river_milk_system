@@ -1,6 +1,7 @@
 const express = require('express');
 const Delivery = require('../models/Delivery');
 const Customer = require('../models/Customer');
+const Product = require('../models/Product');
 const router = express.Router();
 
 // Get deliveries for a specific date (defaults to today)
@@ -13,6 +14,9 @@ router.get('/today', async (req, res) => {
     endOfDay.setHours(23, 59, 59, 999);
 
     const filter = { date: { $gte: startOfDay, $lte: endOfDay } };
+
+    // Distributor portal: only show deliveries assigned to this distributor
+    // (pickup deliveries are admin-only — excluded when distributorId is provided)
     if (req.query.distributorId) {
       filter.distributorId = req.query.distributorId;
     }
@@ -24,11 +28,11 @@ router.get('/today', async (req, res) => {
   }
 });
 
-// Mark delivery or pickup
+// Mark delivery or pickup (with milk type switching + inventory deduction)
 router.post('/mark', async (req, res) => {
   try {
-    const { customerId, date, quantityLitres, distributorId, status, markedBy } = req.body;
-    
+    const { customerId, date, quantityLitres, distributorId, status, markedBy, milkType } = req.body;
+
     let parsedDate = new Date(date);
     parsedDate.setHours(0, 0, 0, 0);
 
@@ -36,10 +40,25 @@ router.post('/mark', async (req, res) => {
     const endOfDay = new Date(parsedDate);
     endOfDay.setHours(23, 59, 59, 999);
 
+    // Get price snapshot from active product for this milk type
+    let pricePerLitre = null;
+    const deliveredMilkType = milkType || 'cow';
+    const milkTypeKeyMap = { full_cream: 'full_cream', cow: 'cow', buffalo: 'buffalo' };
+    const milkProduct = await Product.findOne({
+      category: 'milk',
+      milkTypeKey: milkTypeKeyMap[deliveredMilkType],
+      isActive: true
+    });
+    if (milkProduct) {
+      pricePerLitre = milkProduct.price;
+    }
+
     const existing = await Delivery.findOne({ customerId, date: { $gte: startOfDay, $lte: endOfDay } });
     if (existing) {
       existing.status = status;
       existing.quantityLitres = quantityLitres;
+      existing.milkType = deliveredMilkType;
+      existing.pricePerLitre = pricePerLitre;
       existing.markedAt = new Date();
       existing.markedBy = markedBy;
       await existing.save();
@@ -51,6 +70,8 @@ router.post('/mark', async (req, res) => {
       distributorId,
       date: parsedDate,
       quantityLitres,
+      milkType: deliveredMilkType,
+      pricePerLitre,
       status,
       markedAt: new Date(),
       markedBy

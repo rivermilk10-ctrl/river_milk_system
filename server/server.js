@@ -29,6 +29,9 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/distributors', require('./routes/distributors'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/products', require('./routes/products'));
+app.use('/api/sales', require('./routes/sales'));
+app.use('/api/payments', require('./routes/payments'));
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

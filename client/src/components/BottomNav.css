@@ -1,37 +1,192 @@
+/* ─── Bottom Nav Bar ────────────────────────────────────────────────────── */
 .bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
   display: flex;
   justify-content: space-around;
-  padding: 16px 0;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
-  z-index: 100;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.03);
+  align-items: flex-end;
+  padding: 8px 8px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  z-index: 200;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.06);
 }
 
+/* ─── Nav Item ──────────────────────────────────────────────────────────── */
 .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-decoration: none;
   color: var(--text-light);
-  font-size: 12px;
-  font-weight: 500;
-  gap: 6px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 10px;
+  font-weight: 600;
+  gap: 3px;
+  flex: 1;
+  padding: 2px 4px 2px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 0.2px;
+  transition: color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Icon wrapper — holds the active pill indicator */
+.nav-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 30px;
+  border-radius: 15px;
+  transition: background 0.25s ease, transform 0.2s ease;
 }
 
 .nav-item.active {
   color: var(--primary);
-  transform: translateY(-2px);
+}
+
+.nav-item.active .nav-icon-wrap {
+  background: rgba(37, 99, 235, 0.1);
+  transform: translateY(-1px);
 }
 
 .nav-item.active svg {
-  filter: drop-shadow(0 2px 4px rgba(37, 99, 235, 0.3));
+  filter: drop-shadow(0 2px 5px rgba(37, 99, 235, 0.35));
+}
+
+.nav-item:hover .nav-icon-wrap {
+  background: rgba(37, 99, 235, 0.07);
+}
+
+/* More button inherits same style */
+.nav-more-btn {
+  outline: none;
+}
+
+/* ─── More Backdrop ─────────────────────────────────────────────────────── */
+.more-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.3);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 300;
+  animation: backdropIn 0.2s ease forwards;
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ─── More Drawer ───────────────────────────────────────────────────────── */
+.more-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 24px 24px 0 0;
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+  padding: 12px 24px 0;
+  /* Extra bottom padding = nav bar height so grid clears the nav */
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  z-index: 301;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.12);
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.more-drawer.open {
+  transform: translateY(0);
+  pointer-events: all;
+}
+
+.more-drawer-handle {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 8px;
+  cursor: pointer;
+}
+
+.more-drawer-pill {
+  width: 36px;
+  height: 4px;
+  background: #CBD5E1;
+  border-radius: 2px;
+}
+
+.more-drawer-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+/* 2×2 grid for drawer items */
+.more-drawer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--text-color);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #F8FAFC;
+  border: 1.5px solid transparent;
+  transition: all 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.drawer-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #EFF6FF;
+  color: var(--primary);
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+.drawer-item.active {
+  background: #EFF6FF;
+  border-color: rgba(37, 99, 235, 0.25);
+  color: var(--primary);
+}
+
+.drawer-item.active .drawer-icon-wrap {
+  background: var(--primary);
+  color: white;
+}
+
+.drawer-item:hover {
+  background: #EFF6FF;
+  border-color: rgba(37, 99, 235, 0.2);
+  color: var(--primary);
 }
