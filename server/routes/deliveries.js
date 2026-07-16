@@ -83,4 +83,78 @@ router.post('/mark', async (req, res) => {
   }
 });
 
+// Bulk mark deliveries
+router.post('/mark-bulk', async (req, res) => {
+  try {
+    const { deliveries } = req.body;
+    const results = [];
+    
+    // Fetch prices once
+    const milkProducts = await Product.find({ category: 'milk', isActive: true });
+    const priceMap = {};
+    milkProducts.forEach(p => {
+      priceMap[p.milkTypeKey] = p.price;
+    });
+    
+    for (const d of deliveries) {
+      let parsedDate = new Date(d.date);
+      parsedDate.setHours(0, 0, 0, 0);
+      const startOfDay = new Date(parsedDate);
+      const endOfDay = new Date(parsedDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const deliveredMilkType = d.milkType || 'cow';
+      const milkTypeKeyMap = { full_cream: 'full_cream', cow: 'cow', buffalo: 'buffalo' };
+      const pricePerLitre = priceMap[milkTypeKeyMap[deliveredMilkType]] || null;
+
+      const existing = await Delivery.findOne({ customerId: d.customerId, date: { $gte: startOfDay, $lte: endOfDay } });
+      if (existing) {
+        existing.status = d.status;
+        existing.quantityLitres = d.quantityLitres;
+        existing.milkType = deliveredMilkType;
+        existing.pricePerLitre = pricePerLitre;
+        existing.markedAt = new Date();
+        existing.markedBy = d.markedBy;
+        await existing.save();
+        results.push(existing);
+      } else {
+        const delivery = new Delivery({
+          customerId: d.customerId,
+          distributorId: d.distributorId,
+          date: parsedDate,
+          quantityLitres: d.quantityLitres,
+          milkType: deliveredMilkType,
+          pricePerLitre,
+          status: d.status,
+          markedAt: new Date(),
+          markedBy: d.markedBy
+        });
+        await delivery.save();
+        results.push(delivery);
+      }
+    }
+    res.status(201).json(results);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Unmark a delivery
+router.delete('/unmark/:customerId/:date', async (req, res) => {
+  try {
+    const { customerId, date } = req.params;
+    let parsedDate = new Date(date);
+    parsedDate.setHours(0, 0, 0, 0);
+
+    const startOfDay = new Date(parsedDate);
+    const endOfDay = new Date(parsedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    await Delivery.findOneAndDelete({ customerId, date: { $gte: startOfDay, $lte: endOfDay } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

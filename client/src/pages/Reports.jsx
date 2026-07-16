@@ -23,6 +23,9 @@ function Reports() {
   const [ledgerResults, setLedgerResults] = useState([]);
   const [selectedLedgerCustomer, setSelectedLedgerCustomer] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedPaymentCustomer, setSelectedPaymentCustomer] = useState(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
 
   const months = Array.from({length: 12}, (_, i) => ({ value: i, label: format(new Date(2000, i, 1), 'MMMM') }));
 
@@ -62,6 +65,33 @@ function Reports() {
     const data = await fetch(`${API_URL}/api/reports/customer-ledger/${customerId}`).then(r => r.json());
     setLedgerData(data);
     setLoading(false);
+  };
+
+  const submitPayment = async () => {
+    if (!paymentAmount || Number(paymentAmount) <= 0) return alert('Enter a valid amount');
+    try {
+      const res = await fetch(`${API_URL}/api/payments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: selectedPaymentCustomer._id || selectedPaymentCustomer.id || selectedPaymentCustomer.customerId,
+          amount: Number(paymentAmount)
+        })
+      });
+      if (res.ok) {
+        setPaymentModalOpen(false);
+        fetchPending();
+        if (activeTab === 'Customer Ledger' && selectedLedgerCustomer && (selectedLedgerCustomer._id === selectedPaymentCustomer._id)) {
+            fetchLedger(selectedLedgerCustomer._id);
+        }
+      } else {
+        const err = await res.json();
+        alert(err.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to record payment');
+    }
   };
 
   // Ledger customer search
@@ -280,7 +310,15 @@ function Reports() {
               <p style={{ fontWeight: '600' }}>{t('No pending payments')}</p>
             </div>
           ) : pendingData.customers.map((c, i) => (
-            <div key={i} className="card" style={{ padding: '14px 16px' }}>
+            <div key={i} className="card" style={{ padding: '14px 16px', cursor: 'pointer' }}
+                 onClick={() => {
+                   setSelectedPaymentCustomer(c);
+                   setPaymentAmount(c.outstandingBalance);
+                   setPaymentModalOpen(true);
+                 }}
+                 onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.01)'}
+                 onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -376,6 +414,29 @@ function Reports() {
           )}
         </div>
       )}
+
+      {/* Payment Modal */}
+      {paymentModalOpen && selectedPaymentCustomer && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
+          <div className="card" style={{ padding: '24px', width: '90%', maxWidth: '400px', margin: '0' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>Record Payment</h3>
+            <div style={{ fontSize: '14px', color: 'var(--text-light)', marginBottom: '16px' }}>
+              Customer: {selectedPaymentCustomer.name}
+            </div>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Amount Received (₹)</label>
+              <input type="number" className="form-control" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} />
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button className="btn btn-outline" style={{ width: 'auto' }} onClick={() => setPaymentModalOpen(false)}>{t('Cancel')}</button>
+              <button className="btn btn-primary" style={{ width: 'auto' }} onClick={submitPayment}>{t('Save Payment')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

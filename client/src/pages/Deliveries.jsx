@@ -19,6 +19,7 @@ function Deliveries() {
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [overrides, setOverrides] = useState({});
   const [milkTypeOverrides, setMilkTypeOverrides] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchDeliveries = (date) => {
     const url = user.role === 'distributor'
@@ -82,6 +83,58 @@ function Deliveries() {
     }
   };
 
+  const unmarkDelivered = async (customer) => {
+    // Remove from local state
+    setDeliveries(prev => prev.filter(d => !(d.customerId === customer._id || d.customerId?._id === customer._id)));
+
+    try {
+      await fetch(`${API_URL}/api/deliveries/unmark/${customer._id}/${selectedDate.toISOString()}`, {
+        method: 'DELETE',
+      });
+    } catch (err) {
+      console.error(err);
+      fetchDeliveries(selectedDate); // Refresh on failure
+    }
+  };
+
+  const filteredCustomers = customers.filter(c => {
+    if (!searchQuery) return true;
+    const lowerQuery = searchQuery.toLowerCase();
+    return c.name?.toLowerCase().includes(lowerQuery) || c.customerNumber?.toLowerCase().includes(lowerQuery);
+  });
+
+  const markAllDelivered = async () => {
+    const unmarkedCustomers = filteredCustomers.filter(c => !isMarked(c._id));
+    if (unmarkedCustomers.length === 0) return;
+
+    const newDeliveries = unmarkedCustomers.map(customer => {
+      const finalQuantity = overrides[customer._id] ? parseFloat(overrides[customer._id]) : customer.defaultQuantityLitres;
+      const milkType = getEffectiveMilkType(customer);
+      return {
+        customerId: customer._id,
+        distributorId: user.role === 'distributor' ? user.id : customer.assignedDistributorId?._id,
+        date: selectedDate.toISOString(),
+        quantityLitres: finalQuantity,
+        milkType,
+        status: customer.type === 'delivery' ? 'delivered' : 'collected',
+        markedBy: user.id
+      };
+    });
+
+    setDeliveries(prev => [...prev, ...newDeliveries]);
+
+    try {
+      await fetch(`${API_URL}/api/deliveries/mark-bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deliveries: newDeliveries })
+      });
+    } catch (err) {
+      console.error(err);
+      fetchDeliveries(selectedDate); // Refresh on failure
+    }
+  };
+
   const isMarked = (customerId) => deliveries.some(d => d.customerId === customerId || d.customerId?._id === customerId);
 
   const getMilkTypeColor = (type) => MILK_TYPES.find(m => m.value === type)?.color || '#D97706';
@@ -112,8 +165,28 @@ function Deliveries() {
         </button>
       </div>
 
+      {/* Search and Actions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+        <input 
+          type="text" 
+          placeholder={t('Search by name or number...')} 
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', fontSize: '15px' }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button 
+            className="btn btn-primary" 
+            onClick={markAllDelivered}
+            style={{ padding: '10px 16px', fontSize: '14px', borderRadius: '12px', width: 'auto' }}
+          >
+            {t('Mark All as Delivered')}
+          </button>
+        </div>
+      </div>
+
       {/* Customer Delivery Cards */}
-      {customers.map(c => {
+      {filteredCustomers.map(c => {
         const marked = isMarked(c._id);
         const effectiveMilkType = getEffectiveMilkType(c);
         const milkColor = getMilkTypeColor(effectiveMilkType);
@@ -211,20 +284,19 @@ function Deliveries() {
             )}
 
             <button
-              className={`btn ${marked ? 'btn-success' : ''}`}
-              onClick={() => markDelivered(c)}
-              disabled={marked}
-              style={{ padding: '13px', fontSize: '14px' }}>
-              {marked ? <><Check size={16} /> {t('Marked')}</> : t('Mark as Delivered')}
+              className={`btn ${marked ? 'btn-outline' : ''}`}
+              onClick={() => marked ? unmarkDelivered(c) : markDelivered(c)}
+              style={{ padding: '13px', fontSize: '14px', ...(marked ? { borderColor: '#E2E8F0', color: 'var(--text-light)', background: '#F8FAFC' } : {}) }}>
+              {marked ? <><Check size={16} /> {t('Delivered (Tap to Unmark)')}</> : t('Mark as Delivered')}
             </button>
           </div>
         );
       })}
 
-      {customers.length === 0 && (
+      {filteredCustomers.length === 0 && (
         <div style={{ textAlign: 'center', color: 'var(--text-light)', marginTop: '60px' }}>
           <Check size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
-          <p style={{ fontSize: '16px', fontWeight: '500' }}>No customers available.</p>
+          <p style={{ fontSize: '16px', fontWeight: '500' }}>No customers found.</p>
         </div>
       )}
     </div>
